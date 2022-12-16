@@ -1,0 +1,158 @@
+_schema-version: "3.1"
+ID: s4btp-glb-em-sample-bp
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: s4btp-glb-em-sample-bp-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: s4btp-glb-em-sample-bp-uaa
+  - name: s4btp-glb-em-sample-bp-destination-service
+  - name: eminst
+  - name: s4btp-glb-em-sample-bp-db
+  - name: s4btp-glb-em-sample-bp-connectivity
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+  build-parameters:
+    builder: npm-ci
+- name: s4btp-glb-em-sample-bp-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: s4btp-glb-em-sample-bp-destination-service
+    parameters:
+      content-target: true
+  - name: s4btp-glb-em-sample-bp-repo-host
+    parameters:
+      service-key:
+        name: s4btp-glb-em-sample-bp-repo-host-key
+  - name: s4btp-glb-em-sample-bp-uaa
+    parameters:
+      service-key:
+        name: s4btp-glb-em-sample-bp-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: approuter_s4btp_glb_em_sample_bp_repo_host
+          ServiceInstanceName: s4btp-glb-em-sample-bp-html5-srv
+          ServiceKeyName: s4btp-glb-em-sample-bp-repo-host-key
+          sap.cloud.service: s4btp_glb_em_sample_bp_service
+        - Authentication: OAuth2UserTokenExchange
+          Name: approuter_s4btp_glb_em_sample_bp_uaa
+          ServiceInstanceName: s4btp-glb-em-sample-bp-xsuaa-service
+          ServiceKeyName: s4btp-glb-em-sample-bp-uaa-key
+          sap.cloud.service: s4btp_glb_em_sample_bp_service
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: s4btp-glb-em-sample-bp-ui-deployer
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: s4btp-glb-em-sample-bp-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - cngbusinesspartnersext.zip
+      name: cngbusinesspartnersext
+      target-path: resources/
+    - artifacts:
+      - cngbusinesspartnersloc.zip
+      name: cngbusinesspartnersloc
+      target-path: resources/
+- name: s4btp-glb-em-sample-bp-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: s4btp-glb-em-sample-bp-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: cngbusinesspartnersext
+  type: html5
+  path: app/business-partners-ext
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: cngbusinesspartnersloc
+  type: html5
+  path: app/business-partners-loc
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: s4btp-glb-em-sample-bp-connectivity
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: connectivity
+    service-name: s4btp-glb-em-sample-bp-connectivity
+    service-plan: lite
+- name: s4btp-glb-em-sample-bp-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: s4btp-glb-em-sample-bp-html5-srv
+    service-plan: app-host
+- name: s4btp-glb-em-sample-bp-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          - Authentication: NoAuthentication
+            HTML5.DynamicDestination: true
+            Name: cap-service-endpoint
+            ProxyType: Internet
+            Type: HTTP
+            URL: ~{srv-api/srv-url}
+            forwardAuthToken: true
+          existing_destinations_policy: update
+    service: destination
+    service-name: s4btp-glb-em-sample-bp-destination-service
+    service-plan: lite
+  requires:
+  - name: srv-api
+- name: s4btp-glb-em-sample-bp-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: s4btp-glb-em-sample-bp-xsuaa-service
+    service-plan: application
+- name: eminst
+  type: org.cloudfoundry.existing-service
+- name: s4btp-glb-em-sample-bp-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npx -p @sap/cds-dk cds build --production

@@ -1,0 +1,106 @@
+{
+    "name": "s4btp-glb-em-sample-bp",
+    "version": "1.0.0",
+    "description": "A simple CAP project.",
+    "repository": "<Add your repository here>",
+    "license": "UNLICENSED",
+    "private": true,
+    "dependencies": {
+        "@sap-cloud-sdk/http-client": "^2.11.0",
+        "@sap-cloud-sdk/util": "^2.11.0",
+        "@sap/cds": "^6",
+        "@sap/xb-msg-amqp-v100": "^0.9.58",
+        "@sap/xssec": "^3",
+        "express": "^4",
+        "hdb": "^0.19.0",
+        "passport": "^0"
+    },
+    "devDependencies": {
+        "@sap/ux-specification": "UI5-1.109",
+        "rimraf": "^3.0.2",
+        "sqlite3": "^5.1.4"
+    },
+    "scripts": {
+        "start": "cds run",
+        "undeploy": "cf undeploy s4btp-glb-em-sample-bp --delete-services --delete-service-keys --delete-service-brokers",
+        "build": "rimraf resources mta_archives && mbt build --mtar archive",
+        "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+        "watch-business-partners-ext": "cds watch --open business-partners-ext/webapp/index.html?sap-ui-xx-viewCache=false",
+        "watch-business-partners-loc": "cds watch --open business-partners-loc/webapp/index.html?sap-ui-xx-viewCache=false"
+    },
+    "engines": {
+        "node": "^16.15"
+    },
+    "eslintConfig": {
+        "extends": "eslint:recommended",
+        "env": {
+            "es2020": true,
+            "node": true,
+            "jest": true,
+            "mocha": true
+        },
+        "globals": {
+            "SELECT": true,
+            "INSERT": true,
+            "UPDATE": true,
+            "DELETE": true,
+            "CREATE": true,
+            "DROP": true,
+            "CDL": true,
+            "CQL": true,
+            "CXL": true,
+            "cds": true
+        },
+        "rules": {
+            "no-console": "off",
+            "require-atomic-updates": "off"
+        }
+    },
+    "cds": {
+        "requires": {
+            "messaging": {
+                "[development]": {
+                    "kind": "file-based-messaging",
+                    "format": "cloudevents"
+                },
+                "[production]": {
+                    "kind": "enterprise-messaging-shared",
+                    "amqp": {
+                        "incomingSessionWindow": 100
+                    },
+                    "format": "cloudevents"
+                }
+            },
+            "API_BUSINESS_PARTNER": {
+                "kind": "odata-v2",
+                "model": "srv/external/API_BUSINESS_PARTNER-extend",
+                "[sandbox]": {
+                    "credentials": {
+                        "url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_BUSINESS_PARTNER/"
+                    }
+                },
+                "[production]": {
+                    "credentials": {
+                        "destination": "S4HANA_PS3_HTTPS_500",
+                        "path": "/sap/opu/odata/sap/API_BUSINESS_PARTNER"
+                    }
+                }
+            },
+            "[production]": {
+                "db": {
+                    "kind": "hana-cloud"
+                }
+            },
+            "db": {
+                "kind": "sql"
+            },
+            "odata": {
+                "protectMetadata": false
+            }
+        }
+    },
+    "sapux": [
+        "app/business-partners-ext",
+        "app/business-partners-loc"
+    ]
+}

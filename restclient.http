@@ -1,0 +1,23 @@
+POST http://localhost:4004/api-business-partner/A_BusinessPartner
+Content-Type: application/json
+
+{
+    "BusinessPartner": "123",
+    "BusinessPartnerFullName": "my new business partner 123",
+    "SearchTerm1": "search term 1"
+}
+
+###
+PATCH http://localhost:4004/api-business-partner/A_BusinessPartner(BusinessPartner='123')
+Content-Type: application/json
+
+{
+    "BusinessPartnerFullName": "change to new name",
+    "BusinessPartnerIsBlocked": true,
+    "SearchTerm1": "search abc",
+    "SearchTerm2": "search 123"
+}
+
+###
+POST http://localhost:4004/opevent/delete_all
+Content-Type: application/json

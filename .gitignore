@@ -1,0 +1,36 @@
+# CAP s4btp-glb-em-sample-bp
+_out
+*.db
+connection.properties
+default-*.json
+.cdsrc-private.json
+gen/
+node_modules/
+target/
+.env
+
+# Web IDE, App Studio
+.che/
+.gen/
+
+# MTA
+*_mta_build_tmp
+*.mtar
+mta_archives/
+
+# Other
+.DS_Store
+*.orig
+*.log
+
+*.iml
+*.flattened-pom.xml
+
+# IDEs
+# .vscode
+# .idea
+resources/cngbusinesspartnersloc.zip
+resources/cngbusinesspartnersext.zip
+app/business-partners-ext/dist/cngbusinesspartnersext.zip
+app/business-partners-loc/dist/cngbusinesspartnersloc.zip
+app/business-partners-ext/package-lock.json
