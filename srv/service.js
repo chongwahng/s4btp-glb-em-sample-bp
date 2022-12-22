@@ -4,17 +4,12 @@ module.exports = async function (srv) {
     const { BusinessPartnerLocals, BusinessPartnerExternals } = cds.entities;
     const bupaSrv = await cds.connect.to('API_BUSINESS_PARTNER')
 
-    const messaging = await cds.connect.to('messaging')
-
-    messaging.on('*', async msg => { console.log(msg) })
-
     this.on('READ', 'BusinessPartnerExternals', async (req) => {
         return bupaSrv.run(req.query)
     })
 
     bupaSrv.on('BusinessPartner.Changed', async msg => {
-        console.log('Received S4HANA Business Event')
-        console.log(msg)
+        console.log(`Received S4HANA Changed BusinessPartner: ${msg.data.BusinessPartner} MSG-ID: ${msg.id}`)
 
         let query = ''
         let result = ''
@@ -24,16 +19,12 @@ module.exports = async function (srv) {
         if (!bupaEntity) {
             console.log(`${msg.data.BusinessPartner} does not exist in the target system`)
         } else {
-            console.log(bupaEntity)
-
             query = SELECT
                 .one(BusinessPartnerLocals)
                 .where({ businessPartnerId: msg.data.BusinessPartner })
             result = await cds.run(query)
 
-            console.log(`result selecting BusinessPartnerLocals ${result}`)
-
-            if (!result) {
+            if (result === null) {
                 query = INSERT
                     .into(BusinessPartnerLocals)
                     .entries({
@@ -43,9 +34,8 @@ module.exports = async function (srv) {
                         searchTerm1: bupaEntity.searchTerm1,
                         searchTerm2: bupaEntity.searchTerm2
                     })
-                result = await cds.run(query)
-                console.log('INSERT block')
-                console.log(result)
+                await cds.run(query)
+                console.log(`INSERT ${bupaEntity.ID}`)
             } else {
                 query = UPDATE(BusinessPartnerLocals)
                     .set({
@@ -55,25 +45,21 @@ module.exports = async function (srv) {
                         searchTerm2: bupaEntity.searchTerm2
                     })
                     .where({ businessPartnerId: bupaEntity.ID })
-                result = await cds.run(query)
-                console.log('UPDATE block')
-                console.log(result)
+                await cds.run(query)
+                console.log(`UPDATE ${bupaEntity.ID}`)
             }
         }
     })
 
     bupaSrv.on('BusinessPartner.Created', async msg => {
-        console.log('Received S4HANA Business Event')
-        console.log(msg)
-
-        let query = ''
+        console.log(`Received S4HANA Created BusinessPartner: ${msg.data.BusinessPartner} MSG-ID: ${msg.id}`)
 
         const bupaEntity = await bupaSrv.run(SELECT.one(BusinessPartnerExternals).where({ ID: msg.data.BusinessPartner }))
 
         if (!bupaEntity) {
             console.log(`${msg.data.BusinessPartner} does not exist in the target system`)
         } else {
-            query = INSERT
+            const query = INSERT
                 .into(BusinessPartnerLocals)
                 .entries({
                     businessPartnerId: bupaEntity.ID,
